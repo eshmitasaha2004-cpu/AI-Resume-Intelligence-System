@@ -1,7 +1,9 @@
 import os
 import sqlite3
 
-DB_PATH = os.path.join(os.getcwd(), "users.db")
+DB_PATH = "users.db"
+if not os.path.exists(DB_PATH):
+    open(DB_PATH, "W").close()
 
 conn = sqlite3.connect(DB_PATH, check_same_thread=False)
 c = conn.cursor()
@@ -30,13 +32,13 @@ def init_db():
 def insert_history(email, score, date):
    global conn, c
 
-    c.execute(
+c.execute(
         "INSERT INTO history VALUES (?, ?, ?)",
         (email, score, date)
     )
 
-    conn.commit()
-    conn.close()
+conn.commit()
+conn.close()
 
 
 def get_user_history(email):
