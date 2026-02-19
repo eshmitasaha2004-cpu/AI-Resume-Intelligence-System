@@ -34,6 +34,10 @@ if "user" not in st.session_state:
 # ---------------- AUTH ----------------
 
 if not st.session_state.user:
+     
+     mode = st.radio("Select Mode", ["Login", "Sign Up"])
+    email = st.text_input("Email")
+    password = st.text_input("Password", type="password")
 
     type_writer("AI Resume Enhancement")
 
@@ -153,42 +157,15 @@ if page == "Leaderboard":
         st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.info("No leaderboard data yet.")
+   
 
+else:
+            st.error("Invalid credentials!")
 
-        if not st.session_state.user:
+st.markdown('</div>', unsafe_allow_html=True)
+st.stop()
 
-    st.markdown("""
-    <div style='text-align:center; padding:30px;'>
-        <h1>🚀 AI Resume Intelligence</h1>
-        <p style='color:#94a3b8;'>Next-Gen Resume Analysis Platform</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-
-    mode = st.radio("Select Mode", ["Login", "Sign Up"])
-    email = st.text_input("Email")
-    password = st.text_input("Password", type="password")
-
-    if mode == "Sign Up":
-        if st.button("Create Account"):
-            if create_user(email, password):
-                st.success("Account created successfully!")
-            else:
-                st.error("User already exists!")
-
-    if mode == "Login":
-        if st.button("Login"):
-            if login_user(email, password):
-                st.session_state.user = email
-                st.rerun()
-            else:
-                st.error("Invalid credentials!")
-
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.stop()
-
-    st.markdown("""
+st.markdown("""
 <hr>
 <p style='text-align:center; color:#94a3b8;'>
 Developed by <b>Eshmita Saha</b><br>
