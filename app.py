@@ -130,7 +130,7 @@ if page == "Analyze Resume":
             score = calculate_match_score(resume_text, job_description)
             insert_history(st.session_state.user, score, datetime.now())
 
-            col1, col2 = st.columns([1,1])
+            col1, col2 = st.columns(2)
 
 with col1:
     st.metric("🎯 Match Score", f"{score}%")
