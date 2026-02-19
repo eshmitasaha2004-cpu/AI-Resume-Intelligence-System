@@ -130,15 +130,17 @@ if page == "Analyze Resume":
             score = calculate_match_score(resume_text, job_description)
             insert_history(st.session_state.user, score, datetime.now())
 
-            col1, col2 = st.columns(2)
+            col1, col2 = st.columns([1,1])
+ 
+            with col1:
+             st.metric("🎯 Match Score", f"{score}%")
 
-with col1:
-    st.metric("🎯 Match Score", f"{score}%")
+            with col2:
+             st.progress(score / 100)
+    else:
+     st.error("please upload resume and paste job description")
 
-with col2:
-    st.progress(score / 100)
-
-
+ 
 
 st.markdown("---")
 
