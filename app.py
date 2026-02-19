@@ -1,139 +1,192 @@
 import streamlit as st
-import PyPDF2
-import re
-import numpy as np
+from datetime import datetime
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+import os
 
-# -----------------------------
-# PAGE CONFIG
-# -----------------------------
-st.set_page_config(page_title="AI Resume Intelligence SaaS", layout="centered")
+import time
 
-# -----------------------------
-# SESSION STATE INIT
-# -----------------------------
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+def type_writer(text):
+    placeholder = st.empty()
+    typed = ""
+    for char in text:
+        typed += char
+        placeholder.markdown(f"### 🤖 {typed}")
+        time.sleep(0.01)
 
-if "history" not in st.session_state:
-    st.session_state.history = []
 
-# -----------------------------
-# LOGIN PAGE
-# -----------------------------
-if not st.session_state.logged_in:
+from auth import create_user, login_user
+from database import init_db, insert_history, get_user_history, get_leaderboard
+from matcher import calculate_match_score
+from resume_parser import extract_text_from_pdf
+from ai_rewriter import rewrite_resume
+from streamlit_extras.metric_card import style_metric_cards
+init_db()
 
-    st.title("🔐 Login - AI Resume Intelligence")
+st.set_page_config(page_title="AI Resume Intelligence", layout="wide")
 
-    name = st.text_input("Enter Your Name")
-    email = st.text_input("Enter Your Email")
+if "user" not in st.session_state:
+    st.session_state.user = None
 
-    if st.button("Login"):
-        if name and email:
-            st.session_state.logged_in = True
-            st.session_state.user = name
-            st.success("Login Successful!")
-            st.rerun()
-        else:
-            st.error("Please enter both name and email.")
+# ---------------- AUTH ----------------
 
-# -----------------------------
-# MAIN DASHBOARD
-# -----------------------------
-else:
+if not st.session_state.user:
 
-    st.title(f"🧠 Welcome, {st.session_state.user}")
-    st.markdown("### AI Resume Intelligence Dashboard")
-    st.markdown("---")
+    type_writer("AI Resume Enhancement")
 
-    # -----------------------------
-    # PDF EXTRACTION
-    # -----------------------------
-    def extract_text_from_pdf(file):
-        pdf_reader = PyPDF2.PdfReader(file)
-        text = ""
-        for page in pdf_reader.pages:
-            text += page.extract_text()
-        return text
+    st.caption("Developed by Eshmita saha")
 
-    def clean_text(text):
-        text = text.lower()
-        text = re.sub(r'[^a-zA-Z0-9 ]', '', text)
-        return text
+    mode = st.sidebar.radio("Select Mode", ["Login", "Sign Up"])
+    email = st.sidebar.text_input("Email")
+    password = st.sidebar.text_input("Password", type="password")
 
-    def calculate_similarity(text1, text2):
-        vectorizer = TfidfVectorizer()
-        vectors = vectorizer.fit_transform([text1, text2])
-        similarity = cosine_similarity(vectors[0:1], vectors[1:2])[0][0]
-        return similarity
+    if mode == "Sign Up":
+        if st.sidebar.button("Create Account"):
+            if create_user(email, password):
+                st.success("Account created successfully!")
+            else:
+                st.error("User already exists!")
 
-    # -----------------------------
-    # INPUT SECTION
-    # -----------------------------
-    st.header("📄 Resume Input")
+    if mode == "Login":
+        if st.sidebar.button("Login"):
+            if login_user(email, password):
+                st.session_state.user = email
+                st.rerun()
+            else:
+                st.error("Invalid credentials!")
+
+    st.stop()
+
+# ---------------- MAIN NAV ----------------
+
+st.sidebar.success(f"Logged in as {st.session_state.user}")
+
+if st.sidebar.button("Logout"):
+    st.session_state.user = None
+    st.rerun()
+
+page = st.sidebar.radio("Navigation", ["Dashboard", "Analyze Resume", "History", "Leaderboard"])
+
+# ---------------- DASHBOARD ----------------
+
+if page == "Dashboard":
+    st.title("📊 Dashboard")
+
+    history = get_user_history(st.session_state.user)
+
+    scores = [row[0] for row in history]
+
+    total = len(scores)
+    avg = round(sum(scores)/len(scores), 2) if scores else 0
+    best = max(scores) if scores else 0
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Analyses", total)
+    col2.metric("Average Score", f"{avg}%")
+    col3.metric("Best Score", f"{best}%")
+
+# ---------------- ANALYZE ----------------
+
+if page == "Analyze Resume":
+
+    st.title("📄 Resume Analyzer")
+
     uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"])
-    resume_text_input = st.text_area("OR Paste Resume Text")
-
-    resume_text = ""
-
-    if uploaded_file:
-        resume_text = extract_text_from_pdf(uploaded_file)
-    elif resume_text_input:
-        resume_text = resume_text_input
-
-    st.header("💼 Job Description")
+    resume_text_input = st.text_area("Or Paste Resume Text")
     job_description = st.text_area("Paste Job Description")
 
-    # -----------------------------
-    # ANALYSIS
-    # -----------------------------
-    if st.button("🔍 Analyze Resume"):
+    if st.button("Analyze Resume"):
+
+        resume_text = extract_text_from_pdf(uploaded_file) if uploaded_file else resume_text_input
 
         if resume_text and job_description:
 
-            resume_clean = clean_text(resume_text)
-            job_clean = clean_text(job_description)
+            score = calculate_match_score(resume_text, job_description)
+            insert_history(st.session_state.user, score, datetime.now())
 
-            similarity = calculate_similarity(resume_clean, job_clean)
-            match_percentage = round(similarity * 100, 2)
+            col1, col2 = st.columns([1,1])
 
-            st.subheader("📊 Match Score")
-            st.progress(int(match_percentage))
-            st.success(f"{match_percentage}% Match")
+with col1:
+    st.metric("🎯 Match Score", f"{score}%")
 
-            # Save history
-            st.session_state.history.append(match_percentage)
+with col2:
+    st.progress(score / 100)
 
-        else:
-            st.error("Please upload/paste resume and job description.")
+style_metric_cards(
+    background_color="#1e293b",
+    border_left_color="#6366f1",
+    border_radius_px=15
+)
 
-    # -----------------------------
-    # HISTORY SECTION
-    # -----------------------------
-    if st.session_state.history:
-        st.markdown("---")
-        st.subheader("📈 Analysis History")
+st.markdown("---")
+st.subheader("🤖 AI Resume Enhancement")
 
-        history_df = pd.DataFrame({
-            "Attempt": range(1, len(st.session_state.history) + 1),
-            "Match %": st.session_state.history
-        })
+if st.button("Generate AI Suggestions"):
+                improved = rewrite_resume(resume_text)
+                st.text_area("Improved Resume Version", improved, height=300)
+else:
+            st.warning("Please provide both resume and job description.")
 
-        st.dataframe(history_df)
+# ---------------- HISTORY ----------------
 
-    # -----------------------------
-    # LOGOUT
-    # -----------------------------
-    st.markdown("---")
-    if st.button("Logout"):
-        st.session_state.logged_in = False
-        st.session_state.history = []
-        st.rerun()
+if page == "History":
 
-    # -----------------------------
-    # FOOTER
-    # -----------------------------
-    st.markdown("---")
-    st.markdown("<div style='text-align:center;'>Developed by <b>Eshmita Saha</b> 💻</div>", unsafe_allow_html=True)
+    st.title("📈 History")
+
+    history = get_user_history(st.session_state.user)
+
+    if history:
+        df = pd.DataFrame(history, columns=["Match Score", "Timestamp"])
+        st.dataframe(df, use_container_width=True)
+    else:
+        st.info("No history found.")
+
+# ---------------- LEADERBOARD ----------------
+if page == "Leaderboard":
+    st.title("🏆 Global Leaderboard")
+
+    leaderboard = get_leaderboard()
+
+    if leaderboard:
+        df = pd.DataFrame(leaderboard, columns=["User", "Best Score"])
+        df = df.sort_values("Best Score", ascending=False)
+
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.dataframe(df, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        st.info("No leaderboard data yet.")
+
+
+        if not st.session_state.user:
+
+    st.markdown("""
+    <div style='text-align:center; padding:30px;'>
+        <h1>🚀 AI Resume Intelligence</h1>
+        <p style='color:#94a3b8;'>Next-Gen Resume Analysis Platform</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+
+    mode = st.radio("Select Mode", ["Login", "Sign Up"])
+    email = st.text_input("Email")
+    password = st.text_input("Password", type="password")
+
+    if mode == "Sign Up":
+        if st.button("Create Account"):
+            if create_user(email, password):
+                st.success("Account created successfully!")
+            else:
+                st.error("User already exists!")
+
+    if mode == "Login":
+        if st.button("Login"):
+            if login_user(email, password):
+                st.session_state.user = email
+                st.rerun()
+            else:
+                st.error("Invalid credentials!")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+    st.stop()
+
