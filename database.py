@@ -1,10 +1,13 @@
+import os
 import sqlite3
-from datetime import datetime
+
+DB_PATH = os.path.join(os.getcwd(), "users.db")
+
+conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+c = conn.cursor()
+
 
 def init_db():
-    conn = sqlite3.connect("users.db")
-    c = conn.cursor()
-
     c.execute("""
     CREATE TABLE IF NOT EXISTS users(
         email TEXT PRIMARY KEY,
@@ -25,8 +28,7 @@ def init_db():
 
 
 def insert_history(email, score, date):
-    conn = sqlite3.connect("users.db")
-    c = conn.cursor()
+   global conn, c
 
     c.execute(
         "INSERT INTO history VALUES (?, ?, ?)",
@@ -38,7 +40,7 @@ def insert_history(email, score, date):
 
 
 def get_user_history(email):
-    conn = sqlite3.connect("users.db")
+    global conn,
     c = conn.cursor()
 
     c.execute(
@@ -52,7 +54,7 @@ def get_user_history(email):
 
 
 def get_leaderboard():
-    conn = sqlite3.connect("users.db")
+    global conn, c
     c = conn.cursor()
 
     c.execute(
