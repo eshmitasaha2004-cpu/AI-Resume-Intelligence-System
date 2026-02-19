@@ -5,6 +5,7 @@ import os
 
 import time
 
+
 def type_writer(text):
     placeholder = st.empty()
     typed = ""
@@ -94,6 +95,7 @@ page = st.sidebar.radio("Navigation", ["Dashboard", "Analyze Resume", "History",
 # ---------------- DASHBOARD ----------------
 
 if page == "Dashboard":
+    score = 0
     st.title("📊 Dashboard")
 
     history = get_user_history(st.session_state.user)
