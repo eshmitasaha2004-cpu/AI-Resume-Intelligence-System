@@ -32,12 +32,29 @@ if "user" not in st.session_state:
     st.session_state.user = None
 
 # ---------------- AUTH ----------------
-
 if not st.session_state.user:
-     
-     mode = st.radio("Select Mode", ["Login", "Sign Up"])
+
+    mode = st.radio("Select Mode", ["Login", "Sign Up"])
     email = st.text_input("Email")
     password = st.text_input("Password", type="password")
+
+    if mode == "Sign Up":
+        if st.button("Create Account"):
+            if create_user(email, password):
+                st.success("Account created successfully!")
+            else:
+                st.error("User already exists!")
+
+    if mode == "Login":
+        if st.button("Login"):
+            if login_user(email, password):
+                st.session_state.user = email
+                st.rerun()
+            else:
+                st.error("Invalid credentials!")
+
+    st.stop()
+
 
     type_writer("AI Resume Enhancement")
 
