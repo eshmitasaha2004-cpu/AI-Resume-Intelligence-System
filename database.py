@@ -5,21 +5,20 @@ def init_db():
     c = conn.cursor()
 
     c.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            email TEXT PRIMARY KEY,
-            password TEXT
-        )
+    CREATE TABLE IF NOT EXISTS users(
+        email TEXT PRIMARY KEY,
+        password TEXT
+    )
     """)
 
     c.execute("""
-        CREATE TABLE IF NOT EXISTS history (
-            user TEXT,
-            score INTEGER,
-            timestamp TEXT
-        )
+    CREATE TABLE IF NOT EXISTS history(
+        email TEXT,
+        score REAL,
+        date TEXT
+    )
     """)
 
     conn.commit()
     conn.close()
-🔹 
 
