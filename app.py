@@ -22,7 +22,11 @@ from ai_rewriter import rewrite_resume
 from streamlit_extras.metric_card import style_metric_cards
 init_db()
 
-st.set_page_config(page_title="AI Resume Intelligence", layout="wide")
+st.set_page_config(
+    page_title="AI Resume Intelligence",
+    page_icon="🚀",
+    layout="wide"
+)
 
 if "user" not in st.session_state:
     st.session_state.user = None
@@ -33,7 +37,7 @@ if not st.session_state.user:
 
     type_writer("AI Resume Enhancement")
 
-    st.caption("Developed by Eshmita saha")
+    
 
     mode = st.sidebar.radio("Select Mode", ["Login", "Sign Up"])
     email = st.sidebar.text_input("Email")
@@ -118,13 +122,7 @@ style_metric_cards(
 )
 
 st.markdown("---")
-st.subheader("🤖 AI Resume Enhancement")
 
-if st.button("Generate AI Suggestions"):
-                improved = rewrite_resume(resume_text)
-                st.text_area("Improved Resume Version", improved, height=300)
-else:
-            st.warning("Please provide both resume and job description.")
 
 # ---------------- HISTORY ----------------
 
@@ -189,4 +187,13 @@ if page == "Leaderboard":
 
     st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
+
+    st.markdown("""
+<hr>
+<p style='text-align:center; color:#94a3b8;'>
+Developed by <b>Eshmita Saha</b><br>
+AI Resume Intelligence © 2026
+</p>
+""", unsafe_allow_html=True)
+
 
