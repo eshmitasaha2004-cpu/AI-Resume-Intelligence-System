@@ -18,7 +18,8 @@ from auth import create_user, login_user
 from database import init_db, insert_history, get_user_history, get_leaderboard
 from matcher import calculate_match_score
 from resume_parser import extract_text_from_pdf
-from streamlit_extras.metric_card import style_metric_cards
+
+
 init_db()
 
 st.set_page_config(
@@ -135,11 +136,7 @@ with col1:
 with col2:
     st.progress(score / 100)
 
-style_metric_cards(
-    background_color="#1e293b",
-    border_left_color="#6366f1",
-    border_radius_px=15
-)
+
 
 st.markdown("---")
 
