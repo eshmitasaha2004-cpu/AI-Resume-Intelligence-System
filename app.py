@@ -125,7 +125,7 @@ if page == "Analyze Resume":
 
         if resume_text and job_description:
 
-            score = calculate_match_score(resume_text, job_description)
+            score, matched, missing = calculate_match_score(resume_text, job_description)
             insert_history(st.session_state.user, score, datetime.now())
 
             col1, col2 = st.columns([1,1])
@@ -135,8 +135,22 @@ if page == "Analyze Resume":
 
             with col2:
              st.progress(score / 100)
-    else:
-     st.error("please upload resume and paste job description")
+             st.subheader("Skill Analysis")
+
+            st.write("### ✅ Matched Skills")
+            if matched:
+              st.success(", ".join(matched))
+            else:
+                st.warning("No strong matches found.")
+
+            st.write("### ❌ Missing Skills")
+            if missing:
+                st.error(", ".join(missing))
+            else:
+                 st.success("No major skill gaps detected.")
+
+else:
+    st.error("please upload resume and paste job description")
 
  
 
