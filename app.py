@@ -180,4 +180,3 @@ AI Resume Intelligence © 2026
 </p>
 """, unsafe_allow_html=True)
 
-
