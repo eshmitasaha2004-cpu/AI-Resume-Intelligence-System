@@ -6,13 +6,11 @@ import os
 import time
 
 
-def type_writer(text):
-    placeholder = st.empty()
-    typed = ""
-    for char in text:
-        typed += char
-        placeholder.markdown(f"### 🤖 {typed}")
-        time.sleep(0.01)
+st.set_page_config(
+    page_title="AI Resume Intelligence",
+    page_icon="🚀",
+    layout="wide"
+)
 
 
 from auth import create_user, login_user
