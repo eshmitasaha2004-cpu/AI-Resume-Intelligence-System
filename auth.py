@@ -1,6 +1,6 @@
 import sqlite3
-
-DB_PATH = "users.db"
+import os
+DB_PATH = os.path.join(os.getcwd(), "users.db")
 
 def create_user(email, password):
     conn = sqlite3.connect(DB_PATH)
