@@ -22,6 +22,9 @@ init_db()
 if "user" not in st.session_state:
     st.session_state.user = None
 
+    if "login_error" not in st.session_state:
+    st.session_state.login_error = False
+
 # ---------------- AUTH ----------------
 if not st.session_state.user:
 
