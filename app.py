@@ -105,7 +105,7 @@ if page == "Dashboard":
     best = max(scores) if scores else 0
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("Total Analyses", total)
+    col1.metric("Total Analysis", total)
     col2.metric("Average Score", f"{avg}%")
     col3.metric("Best Score", f"{best}%")
 
@@ -135,6 +135,7 @@ if page == "Analyze Resume":
 
             with col2:
              st.progress(score / 100)
+             
              st.subheader("Skill Analysis")
 
             st.write("### ✅ Matched Skills")
