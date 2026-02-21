@@ -21,11 +21,7 @@ from resume_parser import extract_text_from_pdf
 
 init_db()
 
-st.set_page_config(
-    page_title="AI Resume Intelligence",
-    page_icon="🚀",
-    layout="wide"
-)
+
 
 if "user" not in st.session_state:
     st.session_state.user = None
