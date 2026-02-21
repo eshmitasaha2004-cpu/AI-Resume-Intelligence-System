@@ -63,12 +63,18 @@ if not st.session_state.user:
                 st.error("User already exists!")
 
     if mode == "Login":
-        if st.sidebar.button("Login"):
-            if login_user(email, password):
-                st.session_state.user = email
-                st.rerun()
-            else:
-                st.error("Invalid credentials!")
+      login_clicked = st.button("Login")
+
+      if login_clicked:
+         if login_user(email, password):
+            st.session_state.user = email
+            st.session_state.login_error = False
+            st.rerun()
+         else:
+            st.session_state.login_error = True
+
+    if st.session_state.get("login_error"):
+        st.error("Invalid credentials!")
 
     st.stop()
 
