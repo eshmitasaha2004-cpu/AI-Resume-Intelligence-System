@@ -2,22 +2,18 @@ import streamlit as st
 from datetime import datetime
 import pandas as pd
 import os
-
 import time
-
-
-st.set_page_config(
-    page_title="AI Resume Intelligence",
-    page_icon="🚀",
-    layout="wide"
-)
-
 
 from auth import create_user, login_user
 from database import init_db, insert_history, get_user_history, get_leaderboard
 from matcher import calculate_match_score
 from resume_parser import extract_text_from_pdf
 
+st.set_page_config(
+    page_title="AI Resume Intelligence",
+    page_icon="🚀",
+    layout="wide"
+)
 
 init_db()
 
