@@ -22,9 +22,8 @@ init_db()
 if "user" not in st.session_state:
     st.session_state.user = None
 
-    if "login_error" not in st.session_state:
+if "login_error" not in st.session_state:
     st.session_state.login_error = False
-
 # ---------------- AUTH ----------------
 if not st.session_state.user:
 
@@ -174,13 +173,6 @@ if page == "Leaderboard":
     else:
         st.info("No leaderboard data yet.")
    
-
-else:
-            st.error("Invalid credentials!")
-
-st.markdown('</div>', unsafe_allow_html=True)
-st.stop()
-
 st.markdown("""
 <hr>
 <p style='text-align:center; color:#94a3b8;'>
