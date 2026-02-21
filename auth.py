@@ -1,37 +1,18 @@
-import os
-import sqlite3
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "users.db")
+import streamlit as st
 
 def create_user(email, password):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
+    if "users" not in st.session_state:
+        st.session_state.users = {}
 
-    c.execute("SELECT * FROM users")
-    print("ALL USERS BEFORE INSERT:", c.fetchall())
-    print("USER INSERTED:", email)
-
-    # Check if user already exists
-    c.execute("SELECT * FROM users WHERE email=?", (email,))
-    if c.fetchone():
-        conn.close()
+    if email in st.session_state.users:
         return False
 
-    # Insert new user
-    c.execute("INSERT INTO users (email, password) VALUES (?, ?)", (email, password))
-    conn.commit()
-    conn.close()
+    st.session_state.users[email] = password
     return True
 
 
 def login_user(email, password):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
+    if "users" not in st.session_state:
+        return False
 
-    c.execute("SELECT * FROM users WHERE email=? AND password=?", (email, password))
-    user = c.fetchone()
-
-    conn.close()
-
-    return user is not None
+    return st.session_state.users.get(email) == password
