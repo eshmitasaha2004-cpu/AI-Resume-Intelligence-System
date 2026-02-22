@@ -6,6 +6,7 @@ import time
 
 from auth import create_user, login_user
 from database import init_db, insert_history, get_user_history, get_leaderboard
+init_db()
 from matcher import calculate_match_score
 from recruiter import rank_resumes
 from resume_parser import extract_text_from_pdf
@@ -67,7 +68,7 @@ st.set_page_config(
     layout="wide"
 )
 
-init_db()
+
 
 
 
