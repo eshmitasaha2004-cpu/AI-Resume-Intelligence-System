@@ -157,23 +157,49 @@ if page == "Analyze Resume":
 
     if st.button("Analyze Resume"):
 
-        resume_text = extract_text_from_pdf(uploaded_file) if uploaded_file else resume_text_input
+      resume_text = extract_text_from_pdf(uploaded_file) if uploaded_file else resume_text_input
 
-        if resume_text and job_description:
-            pdf_buffer = generate_pdf_report(
-    st.session_state.user,
-    score,
-    matched,
-    missing,
-    suggestions if missing else []
-)
+    if resume_text and job_description:
 
-st.download_button(
-    label="📄 Download Analysis Report",
-    data=pdf_buffer,
-    file_name="resume_analysis_report.pdf",
-    mime="application/pdf"
-)
+        # 1️⃣ First calculate score
+        score, matched, missing = calculate_match_score(resume_text, job_description)
+
+        # 2️⃣ Insert history
+        insert_history(st.session_state.user, score, datetime.now())
+
+        # 3️⃣ Show metrics
+        col1, col2 = st.columns([1,1])
+
+        with col1:
+            st.metric("🎯 Match Score", f"{score}%")
+
+        with col2:
+            st.progress(score / 100)
+
+        # 4️⃣ Suggestions
+        suggestions = []
+        if missing:
+            suggestions = [f"Consider adding experience related to {skill}" for skill in missing]
+
+        # 5️⃣ THEN generate PDF
+        pdf_buffer = generate_pdf_report(
+            st.session_state.user,
+            score,
+            matched,
+            missing,
+            suggestions
+        )
+
+        # 6️⃣ THEN download button
+        st.download_button(
+            label="📄 Download Analysis Report",
+            data=pdf_buffer,
+            file_name="resume_analysis_report.pdf",
+            mime="application/pdf"
+        )
+
+    else:
+        st.error("Please upload resume and paste job description")
 
 score, matched, missing = calculate_match_score(resume_text, job_description)
 insert_history(st.session_state.user, score, datetime.now())
