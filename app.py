@@ -275,16 +275,18 @@ if page == "History":
 if page == "Leaderboard":
     st.title("🏆 Global Leaderboard")
 
-    leaderboard = get_leaderboard()
+    
+history = get_leaderboard()
 
-    if leaderboard:
-        df = pd.DataFrame(leaderboard, columns=["User", "Best Score"])
-        df = df.sort_values("Best Score", ascending=False)
-df["Rank"] = range(1, len(df)+1)
-df.loc[df["Rank"] == 1, "Rank"] = "🥇 1"
-df.loc[df["Rank"] == 2, "Rank"] = "🥈 2"
-df.loc[df["Rank"] == 3, "Rank"] = "🥉 3"
-df = df[["Rank", "User", "Best Score"]]   
+if history:
+    df = pd.DataFrame(history, columns=["User", "Score"])
+    df = df.sort_values(by="Score", ascending=False)
+    df["Rank"] = range(1, len(df) + 1)
+
+    st.dataframe(df)
+else:
+    st.info("No leaderboard data yet.")
+       
 # Highlight logged-in user
 current_user = st.session_state.user
 
