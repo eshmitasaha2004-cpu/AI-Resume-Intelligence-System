@@ -7,6 +7,7 @@ import time
 from auth import create_user, login_user
 from database import init_db, insert_history, get_user_history, get_leaderboard
 from matcher import calculate_match_score
+from recruiter import rank_resumes
 from resume_parser import extract_text_from_pdf
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import ParagraphStyle
@@ -15,6 +16,21 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from io import BytesIO
 
+def display_tags(title, skills, color):
+    st.write(f"### {title}")
+    cols = st.columns(4)
+    for i, skill in enumerate(skills):
+        cols[i % 4].markdown(
+            f"<span style='background-color:{color};padding:6px;border-radius:12px;color:white;font-size:12px'>{skill}</span>",
+            unsafe_allow_html=True
+        )
+        def rewrite_suggestions(missing):
+         suggestions = []
+    for skill in missing[:5]:
+        suggestions.append(
+            f"Add measurable achievement using '{skill}' (e.g., 'Implemented {skill} improving performance by 20%')."
+        )
+    return suggestions
 def generate_pdf_report(user, score, matched, missing, suggestions):
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer)
@@ -84,7 +100,6 @@ if not st.session_state.user:
 
     st.stop()
 
-
     type_writer("AI Resume Enhancement")
 
     
@@ -124,7 +139,7 @@ if st.sidebar.button("Logout"):
     st.session_state.user = None
     st.rerun()
 
-page = st.sidebar.radio("Navigation", ["Dashboard", "Analyze Resume", "History", "Leaderboard"])
+page = st.sidebar.radio("Navigation", ["Dashboard", "Analyze Resume", "History", "Leaderboard", "Recruiter"])
 
 # ---------------- DASHBOARD ----------------
 
@@ -158,7 +173,7 @@ if page == "Analyze Resume":
     if st.button("Analyze Resume"):
 
     # Extract resume text
-      resume_text = extract_text_from_pdf(uploaded_file) if uploaded_file else resume_text_input
+    resume_text = extract_text_from_pdf(uploaded_file) if uploaded_file else resume_text_input
 
     if resume_text and job_description:
 
@@ -168,7 +183,7 @@ if page == "Analyze Resume":
         # 2️⃣ Insert into history
         insert_history(st.session_state.user, score, datetime.now())
 
-        # 3️⃣ Show Metrics
+        # 3️⃣ Metrics
         col1, col2 = st.columns([1, 1])
 
         with col1:
@@ -179,11 +194,11 @@ if page == "Analyze Resume":
 
         # 4️⃣ Score Interpretation
         if score < 40:
-            st.error("🔴 Low Match — Significant improvement needed.")
+            st.error("🔴 Low Match – Significant improvement needed.")
         elif score < 70:
-            st.warning("🟡 Moderate Match — Some skills missing.")
+            st.warning("🟡 Moderate Match – Some skills missing.")
         else:
-            st.success("🟢 Strong Match — Well aligned with job description.")
+            st.success("🟢 Strong Match – Well aligned with job description.")
 
         # 5️⃣ Skill Analysis
         st.subheader("Skill Analysis")
@@ -201,11 +216,15 @@ if page == "Analyze Resume":
             st.success("No major skill gaps detected.")
 
         # 6️⃣ Suggestions
-        suggestions = []
-        if missing:
-            suggestions = [f"Consider adding experience related to '{skill}'." for skill in missing]
-
         st.write("### 💡 Improvement Suggestions")
+        suggestions = []
+
+        if missing:
+            suggestions = [
+                f"Consider adding experience related to '{skill}'."
+                for skill in missing
+            ]
+
         if suggestions:
             for s in suggestions:
                 st.info(s)
@@ -221,7 +240,7 @@ if page == "Analyze Resume":
             suggestions
         )
 
-        # 8️⃣ Download Button
+        # 8️⃣ Download button
         st.download_button(
             label="📄 Download Analysis Report",
             data=pdf_buffer,
@@ -231,7 +250,6 @@ if page == "Analyze Resume":
 
     else:
         st.error("Please upload resume and paste job description.")
-
 
 
              
@@ -304,4 +322,27 @@ Developed by <b>Eshmita Saha</b><br>
 AI Resume Intelligence © 2026
 </p>
 """, unsafe_allow_html=True)
+
+if page == "Recruiter":
+
+    st.title("📊 Recruiter Dashboard")
+
+    job_description = st.text_area("Paste Job Description")
+
+    uploaded_files = st.file_uploader("Upload Multiple Resumes", accept_multiple_files=True)
+
+    if st.button("Rank Candidates") and job_description and uploaded_files:
+
+        resume_texts = {}
+
+        for file in uploaded_files:
+            text = extract_text_from_pdf(file)
+            resume_texts[file.name] = text
+
+        ranked = rank_resumes(resume_texts, job_description)
+
+        st.write("### Ranking")
+
+        for name, score in ranked:
+            st.write(f"{name} — {score}%")
 

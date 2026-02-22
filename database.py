@@ -1,57 +1,47 @@
-import os
 import sqlite3
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "users.db")
-
-# Ensure DB file exists
-if not os.path.exists(DB_PATH):
-    open(DB_PATH, "w").close()
-
-# Create global connection
-conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-c = conn.cursor()
-
-
 def init_db():
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS users(
-            email TEXT PRIMARY KEY,
-            password TEXT
-        )
-    """)
+    conn = sqlite3.connect("resume.db")
+    c = conn.cursor()
 
     c.execute("""
-        CREATE TABLE IF NOT EXISTS history(
-            email TEXT,
-            score REAL,
+        CREATE TABLE IF NOT EXISTS history (
+            user TEXT,
+            score INTEGER,
             date TEXT
         )
     """)
 
     conn.commit()
+    conn.close()
 
 
-def insert_history(email, score, date):
-    c.execute(
-        "INSERT INTO history (email, score, date) VALUES (?, ?, ?)",
-        (email, score, date)
-    )
+def insert_history(user, score, date):
+    conn = sqlite3.connect("resume.db")
+    c = conn.cursor()
+    c.execute("INSERT INTO history VALUES (?, ?, ?)", (user, score, date))
     conn.commit()
+    conn.close()
 
 
-def get_user_history(email):
-    c.execute(
-        "SELECT score, date FROM history WHERE email=?",
-        (email,)
-    )
+def get_user_history(user):
+    conn = sqlite3.connect("resume.db")
+    c = conn.cursor()
+    c.execute("SELECT * FROM history WHERE user=?", (user,))
     data = c.fetchall()
+    conn.close()
     return data
 
 
 def get_leaderboard():
-    c.execute(
-        "SELECT email, MAX(score) as best_score FROM history GROUP BY email ORDER BY best_score DESC LIMIT 5"
-    )
+    conn = sqlite3.connect("resume.db")
+    c = conn.cursor()
+    c.execute("""
+        SELECT user, MAX(score)
+        FROM history
+        GROUP BY user
+        ORDER BY MAX(score) DESC
+    """)
     data = c.fetchall()
+    conn.close()
     return data
