@@ -160,56 +160,7 @@ if page == "Analyze Resume":
         resume_text = extract_text_from_pdf(uploaded_file) if uploaded_file else resume_text_input
 
         if resume_text and job_description:
-
-            score, matched, missing = calculate_match_score(resume_text, job_description)
-            insert_history(st.session_state.user, score, datetime.now())
-
-            col1, col2 = st.columns([1,1])
- 
-            with col1:
-             st.metric("🎯 Match Score", f"{score}%", delta=f"{score-50}% vs baseline")
-
-            with col2:
-             st.progress(score / 100)
-
-             # Score Interpretation
-            if score < 40:
-             st.error("🔴 Low Match – Significant improvement needed.")
-            elif 40 <= score < 70:
-              st.warning("🟡 Moderate Match – Some skills missing.")
-            else:
-             st.success("🟢 Strong Match – Well aligned with job description.")
-             
-             st.subheader("Skill Analysis")
-
-            st.write("### ✅ Matched Skills")
-            if matched:
-              st.success(", ".join(matched))
-            else:
-                st.warning("No strong matches found.")
-
-            st.write("### ❌ Missing Skills")
-            if missing:
-                st.error(", ".join(missing))
-            else:
-                 st.success("No major skill gaps detected.")
-                 st.subheader("🧠 Improvement Suggestions")
-
-                 if missing:
-                  suggestions = [
-                f"Consider adding experience related to {skill}."
-                  for skill in missing
-                  ]
-    
-                 for s in suggestions:
-                   st.info(s)
-                 else:
-                    st.success("Your resume aligns well. Focus on measurable achievements.")
-
-        else:
-           st.error("please upload resume and paste job description")
-
-    pdf_buffer = generate_pdf_report(
+            pdf_buffer = generate_pdf_report(
     st.session_state.user,
     score,
     matched,
@@ -223,6 +174,51 @@ st.download_button(
     file_name="resume_analysis_report.pdf",
     mime="application/pdf"
 )
+
+score, matched, missing = calculate_match_score(resume_text, job_description)
+insert_history(st.session_state.user, score, datetime.now())col1, col2 = st.columns([1,1])
+with col1:
+             st.metric("🎯 Match Score", f"{score}%", delta=f"{score-50}% vs baseline")
+with col2:
+             st.progress(score / 100)
+
+             # Score Interpretation
+if score < 40:
+             st.error("🔴 Low Match – Significant improvement needed.")
+elif 40 <= score < 70:
+              st.warning("🟡 Moderate Match – Some skills missing.")
+else:
+             st.success("🟢 Strong Match – Well aligned with job description.")
+             
+             st.subheader("Skill Analysis")
+
+st.write("### ✅ Matched Skills")
+if matched:
+              st.success(", ".join(matched))
+else:
+                st.warning("No strong matches found.")
+
+st.write("### ❌ Missing Skills")
+if missing:
+                st.error(", ".join(missing))
+else:
+                 st.success("No major skill gaps detected.")
+                 st.subheader("🧠 Improvement Suggestions")
+
+                 if missing:
+                  suggestions = [
+                f"Consider adding experience related to {skill}."
+                  for skill in missing
+                  ]
+    
+                 for s in suggestions:
+                   st.info(s)
+                 else:
+                    st.success("Your resume aligns well. Focus on measurable achievements.")
+                
+st.error("please upload resume and paste job description")
+
+    
 
 st.markdown("---")
 
