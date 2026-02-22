@@ -157,18 +157,19 @@ if page == "Analyze Resume":
 
     if st.button("Analyze Resume"):
 
+    # Extract resume text
       resume_text = extract_text_from_pdf(uploaded_file) if uploaded_file else resume_text_input
 
     if resume_text and job_description:
 
-        # 1️⃣ First calculate score
+        # 1️⃣ Calculate score
         score, matched, missing = calculate_match_score(resume_text, job_description)
 
-        # 2️⃣ Insert history
+        # 2️⃣ Insert into history
         insert_history(st.session_state.user, score, datetime.now())
 
-        # 3️⃣ Show metrics
-        col1, col2 = st.columns([1,1])
+        # 3️⃣ Show Metrics
+        col1, col2 = st.columns([1, 1])
 
         with col1:
             st.metric("🎯 Match Score", f"{score}%")
@@ -176,12 +177,42 @@ if page == "Analyze Resume":
         with col2:
             st.progress(score / 100)
 
-        # 4️⃣ Suggestions
+        # 4️⃣ Score Interpretation
+        if score < 40:
+            st.error("🔴 Low Match — Significant improvement needed.")
+        elif score < 70:
+            st.warning("🟡 Moderate Match — Some skills missing.")
+        else:
+            st.success("🟢 Strong Match — Well aligned with job description.")
+
+        # 5️⃣ Skill Analysis
+        st.subheader("Skill Analysis")
+
+        st.write("### ✅ Matched Skills")
+        if matched:
+            st.success(", ".join(matched))
+        else:
+            st.warning("No strong matches found.")
+
+        st.write("### ❌ Missing Skills")
+        if missing:
+            st.error(", ".join(missing))
+        else:
+            st.success("No major skill gaps detected.")
+
+        # 6️⃣ Suggestions
         suggestions = []
         if missing:
-            suggestions = [f"Consider adding experience related to {skill}" for skill in missing]
+            suggestions = [f"Consider adding experience related to '{skill}'." for skill in missing]
 
-        # 5️⃣ THEN generate PDF
+        st.write("### 💡 Improvement Suggestions")
+        if suggestions:
+            for s in suggestions:
+                st.info(s)
+        else:
+            st.success("Your resume aligns well. Focus on measurable achievements.")
+
+        # 7️⃣ Generate PDF
         pdf_buffer = generate_pdf_report(
             st.session_state.user,
             score,
@@ -190,7 +221,7 @@ if page == "Analyze Resume":
             suggestions
         )
 
-        # 6️⃣ THEN download button
+        # 8️⃣ Download Button
         st.download_button(
             label="📄 Download Analysis Report",
             data=pdf_buffer,
@@ -199,53 +230,11 @@ if page == "Analyze Resume":
         )
 
     else:
-        st.error("Please upload resume and paste job description")
+        st.error("Please upload resume and paste job description.")
 
 
-insert_history(st.session_state.user, score, datetime.now())
-col1, col2 = st.columns([1,1])
-with col1:
-             st.metric("🎯 Match Score", f"{score}%", delta=f"{score-50}% vs baseline")
-with col2:
-             st.progress(score / 100)
 
-             # Score Interpretation
-if score < 40:
-             st.error("🔴 Low Match – Significant improvement needed.")
-elif 40 <= score < 70:
-              st.warning("🟡 Moderate Match – Some skills missing.")
-else:
-             st.success("🟢 Strong Match – Well aligned with job description.")
              
-             st.subheader("Skill Analysis")
-
-st.write("### ✅ Matched Skills")
-if matched:
-              st.success(", ".join(matched))
-else:
-                st.warning("No strong matches found.")
-
-st.write("### ❌ Missing Skills")
-if missing:
-                st.error(", ".join(missing))
-else:
-                 st.success("No major skill gaps detected.")
-                 st.subheader("🧠 Improvement Suggestions")
-
-                 if missing:
-                  suggestions = [
-                f"Consider adding experience related to {skill}."
-                  for skill in missing
-                  ]
-    
-                 for s in suggestions:
-                   st.info(s)
-                 else:
-                    st.success("Your resume aligns well. Focus on measurable achievements.")
-                
-
-    
-
 st.markdown("---")
 
 
