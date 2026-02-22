@@ -201,7 +201,7 @@ if page == "Analyze Resume":
     else:
         st.error("Please upload resume and paste job description")
 
-score, matched, missing = calculate_match_score(resume_text, job_description)
+
 insert_history(st.session_state.user, score, datetime.now())
 col1, col2 = st.columns([1,1])
 with col1:
@@ -243,7 +243,6 @@ else:
                  else:
                     st.success("Your resume aligns well. Focus on measurable achievements.")
                 
-st.error("please upload resume and paste job description")
 
     
 
