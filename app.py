@@ -173,7 +173,7 @@ if page == "Analyze Resume":
     if st.button("Analyze Resume"):
 
     # Extract resume text
-    resume_text = extract_text_from_pdf(uploaded_file) if uploaded_file else resume_text_input
+      resume_text = extract_text_from_pdf(uploaded_file) if uploaded_file else resume_text_input
 
     if resume_text and job_description:
 
