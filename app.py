@@ -253,7 +253,7 @@ if page == "Leaderboard":
 df["Rank"] = range(1, len(df)+1)
 df.loc[df["Rank"] == 1, "Rank"] = "🥇 1"
 df.loc[df["Rank"] == 2, "Rank"] = "🥈 2"
-df.loc[df["Rank"] == 3, "Rank"] = "🥉 3"")
+df.loc[df["Rank"] == 3, "Rank"] = "🥉 3"
 df = df[["Rank", "User", "Best Score"]]   
 # Highlight logged-in user
 current_user = st.session_state.user
