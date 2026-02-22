@@ -165,16 +165,9 @@ if page == "Dashboard":
 
 if page == "Analyze Resume":
 
-    st.title("📄 Resume Analyzer")
-
-    uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"])
-    resume_text_input = st.text_area("Or Paste Resume Text")
-    job_description = st.text_area("Paste Job Description")
-
-    if st.button("Analyze Resume"):
 
     # Extract resume text
-      resume_text = extract_text_from_pdf(uploaded_file) if uploaded_file else resume_text_input
+    resume_text = extract_text_from_pdf(uploaded_file) if uploaded_file else resume_text_input
 
     if resume_text and job_description:
 
@@ -195,12 +188,16 @@ if page == "Analyze Resume":
 
         # 4️⃣ Score Interpretation
         if score < 40:
-            st.error("🔴 Low Match – Significant improvement needed.")
+            st.error("🔴 Low Match — Significant improvement needed.")
         elif score < 70:
-            st.warning("🟡 Moderate Match – Some skills missing.")
+            st.warning("🟡 Moderate Match — Some skills missing.")
         else:
-            st.success("🟢 Strong Match – Well aligned with job description.")
+            st.success("🟢 Strong Match — Well aligned with job description.")
 
+    else:
+        st.error("Please upload resume and paste job description.")
+    
+            
         # 5️⃣ Skill Analysis
         st.subheader("Skill Analysis")
 
@@ -273,19 +270,30 @@ if page == "History":
 
 # ---------------- LEADERBOARD ----------------
 if page == "Leaderboard":
-    st.title("🏆 Global Leaderboard")
 
-    
-history = get_leaderboard()
+    st.title("🏆 Leaderboard")
 
-if history:
-    df = pd.DataFrame(history, columns=["User", "Score"])
-    df = df.sort_values(by="Score", ascending=False)
-    df["Rank"] = range(1, len(df) + 1)
+    history = get_leaderboard()
 
-    st.dataframe(df)
-else:
-    st.info("No leaderboard data yet.")
+    if history:
+        df = pd.DataFrame(history, columns=["User", "Score"])
+        df = df.sort_values(by="Score", ascending=False)
+        df["Rank"] = range(1, len(df) + 1)
+
+        st.dataframe(df)
+
+        # Highlight current user
+        current_user = st.session_state.get("user")
+
+        if current_user:
+            user_row = df[df["User"] == current_user]
+
+            if not user_row.empty:
+                st.success(
+                    f"Your Rank: {int(user_row['Rank'].values[0])}"
+                )
+    else:
+        st.info("No leaderboard data yet.")
        
 # Highlight logged-in user
 current_user = st.session_state.user
