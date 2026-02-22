@@ -246,7 +246,7 @@ if page == "Analyze Resume":
             mime="application/pdf"
         )
 
-    else:
+else:
         st.error("Please upload resume and paste job description.")
 
 
