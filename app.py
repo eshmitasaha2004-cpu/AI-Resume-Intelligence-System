@@ -8,6 +8,42 @@ from auth import create_user, login_user
 from database import init_db, insert_history, get_user_history, get_leaderboard
 from matcher import calculate_match_score
 from resume_parser import extract_text_from_pdf
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+from reportlab.lib.styles import getSampleStyleSheet
+from io import BytesIO
+
+def generate_pdf_report(user, score, matched, missing, suggestions):
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer)
+
+    elements = []
+    styles = getSampleStyleSheet()
+
+    elements.append(Paragraph("<b>AI Resume Intelligence Report</b>", styles["Title"]))
+    elements.append(Spacer(1, 0.3 * inch))
+
+    elements.append(Paragraph(f"User: {user}", styles["Normal"]))
+    elements.append(Paragraph(f"Match Score: {score}%", styles["Normal"]))
+    elements.append(Spacer(1, 0.2 * inch))
+
+    elements.append(Paragraph("<b>Matched Skills:</b>", styles["Heading2"]))
+    elements.append(Paragraph(", ".join(matched) if matched else "None", styles["Normal"]))
+    elements.append(Spacer(1, 0.2 * inch))
+
+    elements.append(Paragraph("<b>Missing Skills:</b>", styles["Heading2"]))
+    elements.append(Paragraph(", ".join(missing) if missing else "None", styles["Normal"]))
+    elements.append(Spacer(1, 0.2 * inch))
+
+    elements.append(Paragraph("<b>Improvement Suggestions:</b>", styles["Heading2"]))
+    elements.append(Paragraph(", ".join(suggestions) if suggestions else "None", styles["Normal"]))
+
+    doc.build(elements)
+    buffer.seek(0)
+
+    return buffer
 
 st.set_page_config(
     page_title="AI Resume Intelligence",
@@ -131,10 +167,18 @@ if page == "Analyze Resume":
             col1, col2 = st.columns([1,1])
  
             with col1:
-             st.metric("🎯 Match Score", f"{score}%")
+             st.metric("🎯 Match Score", f"{score}%", delta=f"{score-50}% vs baseline")
 
             with col2:
              st.progress(score / 100)
+
+             # Score Interpretation
+            if score < 40:
+             st.error("🔴 Low Match – Significant improvement needed.")
+            elif 40 <= score < 70:
+              st.warning("🟡 Moderate Match – Some skills missing.")
+            else:
+             st.success("🟢 Strong Match – Well aligned with job description.")
              
              st.subheader("Skill Analysis")
 
@@ -149,11 +193,36 @@ if page == "Analyze Resume":
                 st.error(", ".join(missing))
             else:
                  st.success("No major skill gaps detected.")
+                 st.subheader("🧠 Improvement Suggestions")
 
-else:
-    st.error("please upload resume and paste job description")
+                 if missing:
+                  suggestions = [
+                f"Consider adding experience related to {skill}."
+                  for skill in missing
+                  ]
+    
+                 for s in suggestions:
+                   st.info(s)
+                 else:
+                    st.success("Your resume aligns well. Focus on measurable achievements.")
 
- 
+        else:
+           st.error("please upload resume and paste job description")
+
+    pdf_buffer = generate_pdf_report(
+    st.session_state.user,
+    score,
+    matched,
+    missing,
+    suggestions if missing else []
+)
+
+st.download_button(
+    label="📄 Download Analysis Report",
+    data=pdf_buffer,
+    file_name="resume_analysis_report.pdf",
+    mime="application/pdf"
+)
 
 st.markdown("---")
 
@@ -181,13 +250,42 @@ if page == "Leaderboard":
     if leaderboard:
         df = pd.DataFrame(leaderboard, columns=["User", "Best Score"])
         df = df.sort_values("Best Score", ascending=False)
+df["Rank"] = range(1, len(df)+1)
+df.loc[df["Rank"] == 1, "Rank"] = "🥇 1"
+df.loc[df["Rank"] == 2, "Rank"] = "🥈 2"
+df.loc[df["Rank"] == 3, "Rank"] = "🥉 3"")
+df = df[["Rank", "User", "Best Score"]]   
+# Highlight logged-in user
+current_user = st.session_state.user
 
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.dataframe(df, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-    else:
-        st.info("No leaderboard data yet.")
-   
+user_row = df[df["User"] == current_user]
+if not user_row.empty:
+    user_rank = user_row.iloc[0]["Rank"]
+    st.success(f"🌟 Your Global Rank: {user_rank}")
+
+    def highlight_user(row):
+        if row["User"] == current_user:
+            return ["background-color: #d4edda"] * len(row)
+        return [""] * len(row)
+
+    st.dataframe(
+        df.style.apply(highlight_user, axis=1),
+        use_container_width=True
+    )
+else:
+    st.dataframe(df, use_container_width=True)
+
+
+# 📊 Insert Chart HERE
+st.subheader("📊 Leaderboard Performance Chart")
+
+chart_df = df.copy()
+chart_df["Best Score"] = chart_df["Best Score"].astype(float)
+
+st.bar_chart(
+    chart_df.set_index("User")["Best Score"]
+)
+
 st.markdown("""
 <hr>
 <p style='text-align:center; color:#94a3b8;'>
