@@ -2,48 +2,57 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-from database import init_db, insert_history, get_user_history, get_leaderboard
 from utils import extract_text_from_pdf
 from score import calculate_match_score
+from database import init_db, insert_history, get_all_history
 
 # Initialize database
 init_db()
 
-# -----------------------
-# Navigation
-# -----------------------
+# ---------------------------
+# LOGIN SYSTEM
+# ---------------------------
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
+if "user" not in st.session_state:
+    st.session_state.user = None
+
+if not st.session_state.logged_in:
+    st.title("🔐 Login")
+
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+
+    if st.button("Login"):
+        if username == "admin" and password == "admin123":
+            st.session_state.logged_in = True
+            st.session_state.user = username
+            st.success("Login successful")
+            st.rerun()
+        else:
+            st.error("Invalid credentials")
+
+    st.stop()
+
+# ---------------------------
+# SIDEBAR
+# ---------------------------
+st.sidebar.title(f"Welcome, {st.session_state.user}")
 page = st.sidebar.selectbox(
     "Navigation",
-    ["Dashboard", "Analyze Resume", "Leaderboard"]
+    ["Analyze Resume", "Dashboard", "Leaderboard"]
 )
 
-# -----------------------
-# DASHBOARD
-# -----------------------
+if st.sidebar.button("Logout"):
+    st.session_state.logged_in = False
+    st.session_state.user = None
+    st.rerun()
 
-if page == "Dashboard":
-
-    st.title("📊 Dashboard")
-
-    user = st.session_state.get("user", "Guest")
-    history = get_user_history(user)
-
-    total = len(history)
-    avg_score = sum([row[1] for row in history]) / total if total else 0
-    best_score = max([row[1] for row in history]) if total else 0
-
-    col1, col2, col3 = st.columns(3)
-
-    col1.metric("Total Analysis", total)
-    col2.metric("Average Score", f"{avg_score:.1f}%")
-    col3.metric("Best Score", f"{best_score}%")
-
-# -----------------------
-# ANALYZE RESUME
-# -----------------------
-
-elif page == "Analyze Resume":
+# ---------------------------
+# ANALYZE RESUME PAGE
+# ---------------------------
+if page == "Analyze Resume":
 
     st.title("📄 Resume Analyzer")
 
@@ -62,73 +71,72 @@ elif page == "Analyze Resume":
         if resume_text and job_description:
 
             score, matched, missing = calculate_match_score(
-                resume_text,
-                job_description
+                resume_text, job_description
             )
 
+            st.metric("Match Score", f"{score}%")
+            st.progress(score / 100)
+
+            st.subheader("Matched Skills")
+            st.write(", ".join(matched) if matched else "None")
+
+            st.subheader("Missing Skills")
+            st.write(", ".join(missing) if missing else "None")
+
+            # Save to database
             insert_history(
-                st.session_state.get("user", "Guest"),
+                st.session_state.user,
                 score,
                 datetime.now()
             )
 
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.metric("🎯 Match Score", f"{score}%")
-
-            with col2:
-                st.progress(score / 100)
-
-            # Score Interpretation
-            if score < 40:
-                st.error("🔴 Low Match — Significant improvement needed.")
-            elif score < 70:
-                st.warning("🟡 Moderate Match — Some skills missing.")
-            else:
-                st.success("🟢 Strong Match — Well aligned with job description.")
-
-            # Skills
-            st.subheader("Skill Analysis")
-
-            if matched:
-                st.success("Matched Skills: " + ", ".join(matched))
-            else:
-                st.warning("No strong matches found.")
-
-            if missing:
-                st.error("Missing Skills: " + ", ".join(missing))
-            else:
-                st.success("No major skill gaps detected.")
-
         else:
             st.error("Please upload resume and paste job description.")
 
-# -----------------------
-# LEADERBOARD
-# -----------------------
+# ---------------------------
+# DASHBOARD PAGE
+# ---------------------------
+elif page == "Dashboard":
 
+    st.title("📊 Dashboard")
+
+    df = get_all_history()
+
+    if not df.empty:
+
+        user_df = df[df["user"] == st.session_state.user]
+
+        total = len(user_df)
+        avg_score = int(user_df["score"].mean())
+        best_score = int(user_df["score"].max())
+
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Total Analysis", total)
+        col2.metric("Average Score", f"{avg_score}%")
+        col3.metric("Best Score", f"{best_score}%")
+
+    else:
+        st.info("No analysis data yet.")
+
+# ---------------------------
+# LEADERBOARD PAGE
+# ---------------------------
 elif page == "Leaderboard":
 
     st.title("🏆 Leaderboard")
 
-    history = get_leaderboard()
+    df = get_all_history()
 
-    if history:
-        df = pd.DataFrame(history, columns=["User", "Score"])
-        df = df.sort_values(by="Score", ascending=False)
-        df["Rank"] = range(1, len(df) + 1)
+    if not df.empty:
 
-        st.dataframe(df)
+        leaderboard = (
+            df.groupby("user")["score"]
+            .max()
+            .reset_index()
+            .sort_values(by="score", ascending=False)
+        )
 
-        current_user = st.session_state.get("user")
+        st.dataframe(leaderboard)
 
-        if current_user:
-            user_row = df[df["User"] == current_user]
-
-            if not user_row.empty:
-                st.success(
-                    f"Your Rank: {int(user_row['Rank'].values[0])}"
-                )
     else:
         st.info("No leaderboard data yet.")

@@ -1,12 +1,15 @@
 import sqlite3
+import pandas as pd
 
+DB_NAME = "resume.db"
 
 def init_db():
-    conn = sqlite3.connect("resume.db")
+    conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
     c.execute("""
         CREATE TABLE IF NOT EXISTS history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             user TEXT,
             score INTEGER,
             date TEXT
@@ -18,40 +21,20 @@ def init_db():
 
 
 def insert_history(user, score, date):
-    conn = sqlite3.connect("resume.db")
+    conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
     c.execute(
         "INSERT INTO history (user, score, date) VALUES (?, ?, ?)",
-        (user, score, str(date))
+        (user, score, date)
     )
 
     conn.commit()
     conn.close()
 
 
-def get_user_history(user):
-    conn = sqlite3.connect("resume.db")
-    c = conn.cursor()
-
-    c.execute("SELECT * FROM history WHERE user=?", (user,))
-    data = c.fetchall()
-
+def get_all_history():
+    conn = sqlite3.connect(DB_NAME)
+    df = pd.read_sql_query("SELECT * FROM history", conn)
     conn.close()
-    return data
-
-
-def get_leaderboard():
-    conn = sqlite3.connect("resume.db")
-    c = conn.cursor()
-
-    c.execute("""
-        SELECT user, MAX(score)
-        FROM history
-        GROUP BY user
-        ORDER BY MAX(score) DESC
-    """)
-
-    data = c.fetchall()
-    conn.close()
-    return data
+    return df

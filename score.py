@@ -1,4 +1,5 @@
 def calculate_match_score(resume_text, job_description):
+
     resume_words = set(resume_text.lower().split())
     job_words = set(job_description.lower().split())
 
