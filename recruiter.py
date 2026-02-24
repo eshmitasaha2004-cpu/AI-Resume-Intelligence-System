@@ -1,13 +1,12 @@
-from scorer import calculate_match_score
+from nlp_engine import full_resume_analysis
 
-def rank_resumes(resume_texts, job_description):
+
+def rank_resumes(resume_dict, job_description):
 
     results = []
 
-    for name, text in resume_texts.items():
-        score, _, _ = calculate_match_score(text, job_description)
-        results.append((name, score))
+    for name, text in resume_dict.items():
+        analysis = full_resume_analysis(text, job_description)
+        results.append((name, analysis["final_score"]))
 
-    results.sort(key=lambda x: x[1], reverse=True)
-
-    return results
+    return sorted(results, key=lambda x: x[1], reverse=True)

@@ -1,63 +1,123 @@
 import streamlit as st
-import pandas as pd
+import hashlib
 from datetime import datetime
+import pandas as pd
 
 from utils import extract_text_from_pdf
-from score import calculate_match_score
-from database import init_db, insert_history, get_all_history
+from database import (
+    init_db,
+    create_user,
+    verify_user,
+    insert_history,
+    get_user_history,
+    get_all_history,
+)
+from nlp_engine import full_resume_analysis
+from ml_engine import predict_hiring_probability
+from recruiter import rank_resumes
 
-# Initialize database
+
+# -------------------------------------------------
+# CONFIG
+# -------------------------------------------------
+st.set_page_config(page_title="AI Resume Intelligence", layout="wide")
 init_db()
 
-# ---------------------------
-# LOGIN SYSTEM
-# ---------------------------
+
+# -------------------------------------------------
+# PASSWORD HASH
+# -------------------------------------------------
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
+def logout():
+    st.session_state.logged_in = False
+    st.session_state.user = None
+    st.rerun()
+
+
+# -------------------------------------------------
+# SESSION INIT
+# -------------------------------------------------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 if "user" not in st.session_state:
     st.session_state.user = None
 
+
+# -------------------------------------------------
+# AUTHENTICATION
+# -------------------------------------------------
 if not st.session_state.logged_in:
-    st.title("🔐 Login")
 
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+    st.title("🔐 AI Resume Intelligence Platform")
 
-    if st.button("Login"):
-        if username == "admin" and password == "admin123":
-            st.session_state.logged_in = True
-            st.session_state.user = username
-            st.success("Login successful")
-            st.rerun()
-        else:
-            st.error("Invalid credentials")
-st.stop()
+    tab1, tab2 = st.tabs(["Login", "Sign Up"])
 
-# ---------------------------
+    with tab1:
+        username = st.text_input("Username", key="login_user")
+        password = st.text_input("Password", type="password", key="login_pass")
+
+        if st.button("Login"):
+            if verify_user(username, hash_password(password)):
+                st.session_state.logged_in = True
+                st.session_state.user = username
+                st.success("Login successful")
+                st.rerun()
+            else:
+                st.error("Invalid credentials")
+
+    with tab2:
+        new_user = st.text_input("Choose Username", key="signup_user")
+        new_pass = st.text_input("Choose Password", type="password", key="signup_pass")
+
+        if st.button("Create Account"):
+            if len(new_pass) < 6:
+                st.warning("Password must be at least 6 characters")
+            else:
+                if create_user(new_user, hash_password(new_pass)):
+                    st.success("Account created! Please login.")
+                else:
+                    st.error("Username already exists")
+
+    st.stop()
+
+
+# -------------------------------------------------
 # SIDEBAR
-# ---------------------------
-st.sidebar.title(f"Welcome, {st.session_state.user}")
-page = st.sidebar.selectbox(
+# -------------------------------------------------
+st.sidebar.title(f"👤 {st.session_state.user}")
+
+page = st.sidebar.radio(
     "Navigation",
-    ["Analyze Resume", "Dashboard", "Leaderboard"]
+    [
+        "Resume Analyzer",
+        "Dashboard",
+        "Leaderboard",
+        "Recruiter Panel",
+    ],
 )
 
-if st.sidebar.button("Logout"):
-    st.session_state.logged_in = False
-    st.session_state.user = None
-    st.rerun()
+st.sidebar.button("Logout", on_click=logout)
 
-# ---------------------------
-# ANALYZE RESUME PAGE
-# ---------------------------
-if page == "Analyze Resume":
 
-    st.title("📄 Resume Analyzer")
+# -------------------------------------------------
+# RESUME ANALYZER
+# -------------------------------------------------
+if page == "Resume Analyzer":
 
-    uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"])
-    resume_text_input = st.text_area("Or Paste Resume Text")
-    job_description = st.text_area("Paste Job Description")
+    st.title("📄 AI Resume Analyzer")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"])
+        resume_text_input = st.text_area("Or Paste Resume Text")
+
+    with col2:
+        job_description = st.text_area("Paste Job Description")
 
     if st.button("Analyze Resume"):
 
@@ -69,60 +129,86 @@ if page == "Analyze Resume":
 
         if resume_text and job_description:
 
-            score, matched, missing = calculate_match_score(
-                resume_text, job_description
-            )
+            analysis = full_resume_analysis(resume_text, job_description)
 
-            st.metric("Match Score", f"{score}%")
-            st.progress(score / 100)
+            ml_probability = predict_hiring_probability(analysis)
 
-            st.subheader("Matched Skills")
-            st.write(", ".join(matched) if matched else "None")
+            st.subheader("🎯 AI Hiring Prediction")
+            st.metric("Predicted Hiring Probability", f"{ml_probability}%")
+            st.progress(ml_probability / 100)
 
-            st.subheader("Missing Skills")
-            st.write(", ".join(missing) if missing else "None")
+            if ml_probability > 75:
+                st.success("High likelihood of selection")
+            elif ml_probability > 50:
+                st.warning("Moderate hiring probability")
+            else:
+                st.error("Low hiring probability")
 
-            # Save to database
+            st.divider()
+
+            st.subheader("📊 Feature Breakdown")
+
+            st.write(f"Semantic Score: {analysis['semantic_score']}%")
+            st.write(f"Skill Match Score: {analysis['skill_score']}%")
+            st.write(f"Action Verb Score: {analysis['action_score']}")
+            st.write(f"Quantification Score: {analysis['quant_score']}")
+            st.write(f"Section Completeness Score: {analysis['section_score']}")
+
+            st.divider()
+
+            st.subheader("✅ Matched Skills")
+            st.write(analysis["matched_skills"])
+
+            st.subheader("❌ Missing Skills")
+            st.write(analysis["missing_skills"])
+
+            st.subheader("📌 Resume Keywords")
+            st.write(analysis["resume_keywords"])
+
+            # Save history
             insert_history(
                 st.session_state.user,
-                score,
-                datetime.now()
+                ml_probability,
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             )
 
         else:
-            st.error("Please upload resume and paste job description.")
+            st.warning("Please provide resume and job description.")
 
-# ---------------------------
-# DASHBOARD PAGE
-# ---------------------------
+
+# -------------------------------------------------
+# DASHBOARD
+# -------------------------------------------------
 elif page == "Dashboard":
 
-    st.title("📊 Dashboard")
+    st.title("📊 Personal Dashboard")
 
-    df = get_all_history()
+    df = get_user_history(st.session_state.user)
 
     if not df.empty:
 
-        user_df = df[df["user"] == st.session_state.user]
-
-        total = len(user_df)
-        avg_score = int(user_df["score"].mean())
-        best_score = int(user_df["score"].max())
+        total = len(df)
+        avg_score = int(df["score"].mean())
+        best_score = int(df["score"].max())
 
         col1, col2, col3 = st.columns(3)
-        col1.metric("Total Analysis", total)
-        col2.metric("Average Score", f"{avg_score}%")
-        col3.metric("Best Score", f"{best_score}%")
+        col1.metric("Total Analyses", total)
+        col2.metric("Average Hiring Probability", f"{avg_score}%")
+        col3.metric("Best Probability", f"{best_score}%")
+
+        st.subheader("Performance Trend")
+        st.line_chart(df.set_index("date")["score"])
 
     else:
-        st.info("No analysis data yet.")
+        st.info("No analysis history yet.")
 
-# ---------------------------
-# LEADERBOARD PAGE
-# ---------------------------
+
+# -------------------------------------------------
+# LEADERBOARD
+# -------------------------------------------------
 elif page == "Leaderboard":
 
-    st.title("🏆 Leaderboard")
+    st.title("🏆 Global Leaderboard")
 
     df = get_all_history()
 
@@ -135,7 +221,41 @@ elif page == "Leaderboard":
             .sort_values(by="score", ascending=False)
         )
 
-        st.dataframe(leaderboard)
+        leaderboard["Rank"] = range(1, len(leaderboard) + 1)
+
+        st.dataframe(
+            leaderboard[["Rank", "user", "score"]],
+            use_container_width=True,
+        )
 
     else:
-        st.info("No leaderboard data yet.")
+        st.info("No leaderboard data available.")
+
+
+# -------------------------------------------------
+# RECRUITER PANEL
+# -------------------------------------------------
+elif page == "Recruiter Panel":
+
+    st.title("🏢 Recruiter Multi-Resume Ranking")
+
+    job_description = st.text_area("Paste Job Description")
+    uploaded_files = st.file_uploader(
+        "Upload Multiple Resumes",
+        type=["pdf"],
+        accept_multiple_files=True,
+    )
+
+    if st.button("Rank Candidates") and job_description and uploaded_files:
+
+        resume_dict = {}
+
+        for file in uploaded_files:
+            resume_dict[file.name] = extract_text_from_pdf(file)
+
+        ranked_results = rank_resumes(resume_dict, job_description)
+
+        st.subheader("📊 Candidate Ranking")
+
+        for rank, (name, score) in enumerate(ranked_results, start=1):
+            st.write(f"{rank}. {name} — {score}%")
