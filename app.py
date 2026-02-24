@@ -32,8 +32,7 @@ if not st.session_state.logged_in:
             st.rerun()
         else:
             st.error("Invalid credentials")
-
-    st.stop()
+st.stop()
 
 # ---------------------------
 # SIDEBAR
