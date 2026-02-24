@@ -46,7 +46,7 @@ def verify_user(username, password):
 
     c.execute(
         "SELECT * FROM users WHERE username=? AND password=?",
-        (username, password),
+        (username.lower() , password),
     )
     result = c.fetchone()
     conn.close()

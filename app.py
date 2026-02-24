@@ -61,6 +61,7 @@ if not st.session_state.logged_in:
         password = st.text_input("Password", type="password", key="login_pass")
 
         if st.button("Login"):
+            username = username.strip().lower()
             if verify_user(username, hash_password(password)):
                 st.session_state.logged_in = True
                 st.session_state.user = username
